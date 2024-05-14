@@ -50,6 +50,7 @@ class CausalSelfAttention(nn.Module):
                                         .view(1, 1, config.block_size, config.block_size))
 
     def forward(self, x):
+        window_size = 100
         B, T, C = x.size() # batch size, sequence length, embedding dimensionality (n_embd)
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
@@ -66,6 +67,7 @@ class CausalSelfAttention(nn.Module):
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         if self.flash:
             # efficient attention using Flash Attention CUDA kernels
+            print("In flash attention")
             y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=wei, dropout_p=self.dropout if self.training else 0, is_causal=False)
         else:
             # manual implementation of attention
