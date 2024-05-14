@@ -21,6 +21,7 @@ import time
 import math
 import pickle
 from contextlib import nullcontext
+from google.colab import files
 
 import numpy as np
 import torch
@@ -396,6 +397,7 @@ plt.title("Train and Val Loss")
 plt.legend() 
 
 plt.savefig('Train_Val_Loss.png')
+files.download("Train_Val_Loss.png") 
 # To load the display window 
 plt.show() 
 
