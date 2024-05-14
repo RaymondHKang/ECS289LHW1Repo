@@ -10,8 +10,7 @@ https://github.com/huggingface/transformers/blob/main/src/transformers/models/gp
 import math
 import inspect
 from dataclasses import dataclass
-import torch._dynamo
-torch._dynamo.config.suppress_errors = True
+
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
