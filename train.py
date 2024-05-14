@@ -159,8 +159,8 @@ def get_batch(split):
         # Extract the sequence
         x_seq = data[start_index:end_index]
         y_seq = data[start_index + 1:end_index + 1]
-        print(len(x_seq))
-        print(len(y_seq))
+        # print(len(x_seq))
+        # print(len(y_seq))
         
         # Convert to tensors and append to lists
         x_seqs.append(torch.from_numpy(x_seq.astype(np.int64)))
