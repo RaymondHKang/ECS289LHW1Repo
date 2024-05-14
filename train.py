@@ -139,7 +139,7 @@ def get_batch(split):
         data = np.memmap(os.path.join(data_dir, 'val.bin'), dtype=np.uint16, mode='r')
     
     # Define the window size
-    window_size = 100
+    window_size = 10
     
     # Calculate the total number of windows
     total_windows = (len(data) - window_size) // 1 + 1
