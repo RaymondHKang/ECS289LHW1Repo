@@ -21,7 +21,7 @@ import time
 import math
 import pickle
 from contextlib import nullcontext
-from google.colab import files
+#from google.colab import files
 
 import numpy as np
 import torch
@@ -396,8 +396,8 @@ plt.title("Train and Val Loss")
 # Adding legend, which helps us recognize the curve according to it's color 
 plt.legend() 
 
-plt.savefig('Train_Val_Loss.png')
-files.download("Train_Val_Loss.png") 
+#plt.savefig('Train_Val_Loss.png')
+#files.download("Train_Val_Loss.png") 
 # To load the display window 
 plt.show() 
 
