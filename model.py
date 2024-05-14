@@ -50,7 +50,7 @@ class CausalSelfAttention(nn.Module):
                                         .view(1, 1, config.block_size, config.block_size))
 
     def forward(self, x):
-        window_size = 3
+        window_size = 2
         B, T, C = x.size() # batch size, sequence length, embedding dimensionality (n_embd)
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
@@ -78,6 +78,7 @@ class CausalSelfAttention(nn.Module):
             #att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
             att = att.masked_fill(tril == 0, float('-inf'))
             att = F.softmax(att, dim=-1)
+            print(att)
             att = self.attn_dropout(att)
             y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
         y = y.transpose(1, 2).contiguous().view(B, T, C) # re-assemble all head outputs side by side
