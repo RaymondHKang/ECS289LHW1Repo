@@ -50,7 +50,7 @@ class CausalSelfAttention(nn.Module):
                                         .view(1, 1, config.block_size, config.block_size))
 
     def forward(self, x):
-        window_size = 2
+        window_size = 3
         B, T, C = x.size() # batch size, sequence length, embedding dimensionality (n_embd)
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
@@ -77,7 +77,7 @@ class CausalSelfAttention(nn.Module):
         tril[mask == 1] = 0
         #att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
         torch.set_printoptions(profile="full")
-        print(tril)
+        #print(tril)
         att = att.masked_fill(tril == 0, float('-inf'))
         att = F.softmax(att, dim=-1)
         #print(att)
