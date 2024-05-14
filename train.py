@@ -132,55 +132,6 @@ def get_batch(split):
     else:
         x, y = x.to(device), y.to(device)
     return x, y
-# def get_batch(split):
-#     if split == 'train':
-#         data = np.memmap(os.path.join(data_dir, 'train.bin'), dtype=np.uint16, mode='r')
-#     else:
-#         data = np.memmap(os.path.join(data_dir, 'val.bin'), dtype=np.uint16, mode='r')
-    
-#     # Define the window size
-#     window_size = 10
-    
-#     # Calculate the total number of windows
-#     total_windows = (len(data) - window_size) // 1 + 1
-    
-#     # Randomly select a window index
-#     window_index = torch.randint(total_windows, (batch_size,))
-    
-#     # Initialize lists to store sequences
-#     x_seqs = []
-#     y_seqs = []
-    
-#     # Iterate through batch_size to create sequences
-#     for i in range(batch_size):
-#         start_index = window_index[i] * 1
-#         end_index = start_index + window_size
-        
-#         # Extract the sequence
-#         x_seq = data[start_index:end_index]
-#         y_seq = data[start_index + 1:end_index + 1]
-#         while len(x_seq) < 10:
-#             x_seq.append(" ")
-#         while len(y_seq) < 10:
-#             y_seq.append(" ")
-#         # print(len(x_seq))
-#         # print(len(y_seq))
-        
-#         # Convert to tensors and append to lists
-#         x_seqs.append(torch.from_numpy(x_seq.astype(np.int64)))
-#         y_seqs.append(torch.from_numpy(y_seq.astype(np.int64)))
-    
-#     # Stack the sequences
-#     x = torch.stack(x_seqs)
-#     y = torch.stack(y_seqs)
-    
-#     # Move to device and return
-#     if device_type == 'cuda':
-#         x, y = x.pin_memory().to(device, non_blocking=True), y.pin_memory().to(device, non_blocking=True)
-#     else:
-#         x, y = x.to(device), y.to(device)
-    
-#     return x, y
 
 
 # init these up here, can override if init_from='resume' (i.e. from a checkpoint)
