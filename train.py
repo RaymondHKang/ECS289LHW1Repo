@@ -29,6 +29,8 @@ from torch.distributed import init_process_group, destroy_process_group
 
 from model import GPTConfig, GPT
 
+from matplotlib import pyplot as plt
+
 # -----------------------------------------------------------------------------
 # default config values designed to train a gpt2 (124M) on OpenWebText
 # I/O
@@ -113,65 +115,65 @@ ctx = nullcontext() if device_type == 'cpu' else torch.amp.autocast(device_type=
 
 # poor man's data loader
 data_dir = os.path.join('data', dataset)
-# def get_batch(split):
-#     # We recreate np.memmap every batch to avoid a memory leak, as per
-#     # https://stackoverflow.com/questions/45132940/numpy-memmap-memory-usage-want-to-iterate-once/61472122#61472122
-#     if split == 'train':
-#         data = np.memmap(os.path.join(data_dir, 'train.bin'), dtype=np.uint16, mode='r')
-#     else:
-#         data = np.memmap(os.path.join(data_dir, 'val.bin'), dtype=np.uint16, mode='r')
-#     ix = torch.randint(len(data) - block_size, (batch_size,))
-#     x = torch.stack([torch.from_numpy((data[i:i+block_size]).astype(np.int64)) for i in ix])
-#     y = torch.stack([torch.from_numpy((data[i+1:i+1+block_size]).astype(np.int64)) for i in ix])
-#     if device_type == 'cuda':
-#         # pin arrays x,y, which allows us to move them to GPU asynchronously (non_blocking=True)
-#         x, y = x.pin_memory().to(device, non_blocking=True), y.pin_memory().to(device, non_blocking=True)
-#     else:
-#         x, y = x.to(device), y.to(device)
-#     return x, y
 def get_batch(split):
+    # We recreate np.memmap every batch to avoid a memory leak, as per
+    # https://stackoverflow.com/questions/45132940/numpy-memmap-memory-usage-want-to-iterate-once/61472122#61472122
     if split == 'train':
         data = np.memmap(os.path.join(data_dir, 'train.bin'), dtype=np.uint16, mode='r')
     else:
         data = np.memmap(os.path.join(data_dir, 'val.bin'), dtype=np.uint16, mode='r')
-    
-    # Define the window size
-    window_size = 100
-    
-    # Calculate the total number of windows
-    total_windows = (len(data) - window_size) // 1 + 1
-    
-    # Randomly select a window index
-    window_index = torch.randint(total_windows, (batch_size,))
-    
-    # Initialize lists to store sequences
-    x_seqs = []
-    y_seqs = []
-    
-    # Iterate through batch_size to create sequences
-    for i in range(batch_size):
-        start_index = window_index[i] * 1
-        end_index = start_index + window_size
-        
-        # Extract the sequence
-        x_seq = data[start_index:end_index]
-        y_seq = data[start_index + 1:end_index + 1]
-        
-        # Convert to tensors and append to lists
-        x_seqs.append(torch.from_numpy(x_seq.astype(np.int64)))
-        y_seqs.append(torch.from_numpy(y_seq.astype(np.int64)))
-    
-    # Stack the sequences
-    x = torch.stack(x_seqs)
-    y = torch.stack(y_seqs)
-    
-    # Move to device and return
+    ix = torch.randint(len(data) - block_size, (batch_size,))
+    x = torch.stack([torch.from_numpy((data[i:i+block_size]).astype(np.int64)) for i in ix])
+    y = torch.stack([torch.from_numpy((data[i+1:i+1+block_size]).astype(np.int64)) for i in ix])
     if device_type == 'cuda':
+        # pin arrays x,y, which allows us to move them to GPU asynchronously (non_blocking=True)
         x, y = x.pin_memory().to(device, non_blocking=True), y.pin_memory().to(device, non_blocking=True)
     else:
         x, y = x.to(device), y.to(device)
-    
     return x, y
+# def get_batch(split):
+#     if split == 'train':
+#         data = np.memmap(os.path.join(data_dir, 'train.bin'), dtype=np.uint16, mode='r')
+#     else:
+#         data = np.memmap(os.path.join(data_dir, 'val.bin'), dtype=np.uint16, mode='r')
+    
+#     # Define the window size
+#     window_size = 100
+    
+#     # Calculate the total number of windows
+#     total_windows = (len(data) - window_size) // 1 + 1
+    
+#     # Randomly select a window index
+#     window_index = torch.randint(total_windows, (batch_size,))
+    
+#     # Initialize lists to store sequences
+#     x_seqs = []
+#     y_seqs = []
+    
+#     # Iterate through batch_size to create sequences
+#     for i in range(batch_size):
+#         start_index = window_index[i] * 1
+#         end_index = start_index + window_size
+        
+#         # Extract the sequence
+#         x_seq = data[start_index:end_index]
+#         y_seq = data[start_index + 1:end_index + 1]
+        
+#         # Convert to tensors and append to lists
+#         x_seqs.append(torch.from_numpy(x_seq.astype(np.int64)))
+#         y_seqs.append(torch.from_numpy(y_seq.astype(np.int64)))
+    
+#     # Stack the sequences
+#     x = torch.stack(x_seqs)
+#     y = torch.stack(y_seqs)
+    
+#     # Move to device and return
+#     if device_type == 'cuda':
+#         x, y = x.pin_memory().to(device, non_blocking=True), y.pin_memory().to(device, non_blocking=True)
+#     else:
+#         x, y = x.to(device), y.to(device)
+    
+#     return x, y
 
 
 # init these up here, can override if init_from='resume' (i.e. from a checkpoint)
@@ -296,6 +298,9 @@ t0 = time.time()
 local_iter_num = 0 # number of iterations in the lifetime of this process
 raw_model = model.module if ddp else model # unwrap DDP container if needed
 running_mfu = -1.0
+x_values = []
+train_loss = []
+val_loss = []
 while True:
 
     # determine and set the learning rate for this iteration
@@ -306,6 +311,9 @@ while True:
     # evaluate the loss on train/val sets and write checkpoints
     if iter_num % eval_interval == 0 and master_process:
         losses = estimate_loss()
+        x_values.append(iter_num)
+        train_loss.append(losses['train'])
+        val_loss.append(losses['val'])
         print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
         if wandb_log:
             wandb.log({
@@ -375,6 +383,20 @@ while True:
     # termination conditions
     if iter_num > max_iters:
         break
+
+plt.plot(x_values, train_loss, color='r', label='train') 
+plt.plot(x_values, val_loss, color='g', label='val') 
+  
+# Naming the x-axis, y-axis and the whole graph 
+plt.xlabel("Iterations") 
+plt.ylabel("Loss") 
+plt.title("Train and Val Loss") 
+  
+# Adding legend, which helps us recognize the curve according to it's color 
+plt.legend() 
+  
+# To load the display window 
+plt.show() 
 
 if ddp:
     destroy_process_group()
