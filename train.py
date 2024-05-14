@@ -159,6 +159,10 @@ def get_batch(split):
         # Extract the sequence
         x_seq = data[start_index:end_index]
         y_seq = data[start_index + 1:end_index + 1]
+        while len(x_seq) < 10:
+            x_seq.append(" ")
+        while len(y_seq) < 10:
+            y_seq.append(" ")
         # print(len(x_seq))
         # print(len(y_seq))
         
