@@ -76,7 +76,6 @@ class CausalSelfAttention(nn.Module):
         # Apply the mask to zero out the shifted lower triangle
         tril[mask] = 0
         #att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
-        torch.set_printoptions(profile="full")
         #print(tril)
         att = att.masked_fill(tril == 0, float('-inf'))
         att = F.softmax(att, dim=-1)
