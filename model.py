@@ -47,22 +47,30 @@ class CausalSelfAttention(nn.Module):
             # causal mask to ensure that attention is only applied to the left in the input sequence
             self.register_buffer("bias", torch.tril(torch.ones(config.block_size, config.block_size))
                                         .view(1, 1, config.block_size, config.block_size))
+            
+        self.wind = config.wind
+        self.n_regist = config.n_regist
+        self.register_tokens = nn.Parameter(torch.randn(config.n_regist, config.block_size, config.n_embd))
 
     def forward(self, x):
-        window_size = 100
+        window_size = self.wind
+        n_regist = self.n_regist
         B, T, C = x.size() # batch size, sequence length, embedding dimensionality (n_embd)
+
+        # Concatenate register tokens with input
+        x = torch.cat([self.register_tokens, x], dim=1)
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
         q, k, v  = self.c_attn(x).split(self.n_embd, dim=2)
-        k = k.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
-        q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
-        v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        k = k.view(B, T + n_regist, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        q = q.view(B, T + n_regist, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        v = v.view(B, T + n_regist, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
 
         # tril = torch.tril(torch.ones(B, T, self.n_head, C // self.n_head).transpose(1, 2))
         # wei = torch.zeroes(((B, T, self.n_head, C // self.n_head).transpose(1, 2)))
         # wei = wei.masked_fill(tril == 0, float('-inf'))
 
-        tril = torch.tril(torch.ones((T,T),device=x.device))
+        tril = torch.tril(torch.ones((T + n_regist,T + n_regist),device=x.device))
         mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
          # Apply the mask to zero out the shifted lower triangle
         tril[mask==1] = 0
