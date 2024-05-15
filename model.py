@@ -99,7 +99,7 @@ class MLP(nn.Module):
         self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, x):
-        x = self.c_fc(x)
+        x_1 = self.c_fc(x)
         x_2 = self.c_fc2(x)
         x = x_1 * x_2
         x = self.gelu(x)
