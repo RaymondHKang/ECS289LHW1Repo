@@ -11,7 +11,8 @@ import math
 import inspect
 from dataclasses import dataclass
 import numpy as np
-
+import torch._dynamo
+torch._dynamo.config.suppress_errors = True
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -78,7 +79,7 @@ class CausalSelfAttention(nn.Module):
         tril[mask==1] = 0
         #att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
         #print(tril)
-        att.cuda()
+        #att.cuda()
         att = att.masked_fill(tril == 0, float('-inf'))
         att = F.softmax(att, dim=-1)
         att = self.attn_dropout(att)
