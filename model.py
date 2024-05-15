@@ -49,7 +49,7 @@ class CausalSelfAttention(nn.Module):
         #                                 .view(1, 1, config.block_size, config.block_size))
 
     def forward(self, x):
-        window_size = 3
+        window_size = 100
         B, T, C = x.size() # batch size, sequence length, embedding dimensionality (n_embd)
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
@@ -65,8 +65,8 @@ class CausalSelfAttention(nn.Module):
         mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
          # Apply the mask to zero out the shifted lower triangle
         tril[mask==1] = 0
-        torch.set_printoptions(profile="full")
-        print(tril)
+        # torch.set_printoptions(profile="full")
+        # print(tril)
         #causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         if self.flash:
             # efficient attention using Flash Attention CUDA kernels
