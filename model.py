@@ -17,6 +17,11 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
+######### IMPLEMENTATION OF SOFTMAX USING ABS INSTEAD OF EXP
+# def softmax(x, dim):
+#     return torch.abs(x) / torch.sum(abs(x),dim)
+########
+
 class LayerNorm(nn.Module):
     """ LayerNorm but with an optional bias. PyTorch doesn't support simply bias=False """
 
