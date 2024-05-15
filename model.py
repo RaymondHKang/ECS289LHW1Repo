@@ -93,15 +93,15 @@ class MLP(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.c_fc    = nn.Linear(config.n_embd, 4 * config.n_embd, bias=config.bias)
-        #self.c_fc2    = nn.Linear(config.n_embd, 4 * config.n_embd, bias=config.bias)
+        self.c_fc2    = nn.Linear(config.n_embd, 4 * config.n_embd, bias=config.bias)
         self.gelu    = nn.GELU()
         self.c_proj  = nn.Linear(4 * config.n_embd, config.n_embd, bias=config.bias)
         self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, x):
         x = self.c_fc(x)
-        #x_2 = self.c_fc2(x)
-        #x = x_1 * x_2
+        x_2 = self.c_fc2(x)
+        x = x_1 * x_2
         x = self.gelu(x)
         x = self.c_proj(x)
         x = self.dropout(x)
