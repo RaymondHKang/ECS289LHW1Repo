@@ -48,16 +48,14 @@ class CausalSelfAttention(nn.Module):
             self.register_buffer("bias", torch.tril(torch.ones(config.block_size, config.block_size))
                                         .view(1, 1, config.block_size, config.block_size))
             
-        #self.wind = config.wind
         # self.n_regist = config.n_regist
-        self.n_regist = 1
-        self.register_tokens = nn.Parameter(torch.randn(64, self.n_regist, config.n_embd))
+        # self.n_regist = 1
+        # self.register_tokens = nn.Parameter(torch.randn(64, self.n_regist, config.n_embd))
+        self.wind = config.wind
 
     def forward(self, x):
         B, T, C = x.size() # batch size, sequence length, embedding dimensionality (n_embd)
-
-        # Concatenate register tokens with input
-        x = torch.cat([self.register_tokens, x], dim=1)
+        wind = self.wind
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
         q, k, v  = self.c_attn(x).split(self.n_embd, dim=2)
