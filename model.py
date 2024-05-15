@@ -51,7 +51,7 @@ class CausalSelfAttention(nn.Module):
         #self.wind = config.wind
         # self.n_regist = config.n_regist
         self.n_regist = 1
-        self.register_tokens = nn.Parameter(torch.randn(config.n_embd, self.n_regist, config.n_embd))
+        self.register_tokens = nn.Parameter(torch.randn(config.batch_size, self.n_regist, config.n_embd))
 
     def forward(self, x):
         #window_size = self.wind
