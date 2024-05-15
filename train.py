@@ -31,6 +31,7 @@ from torch.distributed import init_process_group, destroy_process_group
 from model import GPTConfig, GPT
 
 from matplotlib import pyplot as plt
+import sys
 
 # -----------------------------------------------------------------------------
 # default config values designed to train a gpt2 (124M) on OpenWebText
@@ -76,8 +77,16 @@ device = 'cuda' # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1' etc., or try 'mps'
 dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32', 'bfloat16', or 'float16', the latter will auto implement a GradScaler
 compile = True # use PyTorch 2.0 to compile the model to be faster
 
-# My Parameters
 wind = 100
+
+# My Parameters
+for arg in sys.argv[2:]:
+    assert arg.startswith('--')
+    key, val = arg.split('=')
+    key = key[2:]
+    if key == 'wind':
+        wind = val
+
 #n_regist = 1
 # -----------------------------------------------------------------------------
 config_keys = [k for k,v in globals().items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
