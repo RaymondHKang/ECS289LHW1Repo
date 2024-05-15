@@ -75,7 +75,7 @@ class CausalSelfAttention(nn.Module):
         mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
          # Apply the mask to zero out the shifted lower triangle
         tril[mask==1] = 0
-        #tril.to('cpu')
+        tril.to('cpu')
         #att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
         #print(tril)
         att = att.masked_fill(tril == 0, float('-inf'))
