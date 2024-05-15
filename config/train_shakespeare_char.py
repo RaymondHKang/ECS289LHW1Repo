@@ -42,4 +42,4 @@ warmup_iters = 100 # not super necessary potentially
 
 # ADDITIONAL VARIABLES
 #wind = 100
-n_regist = 1
+#n_regist = 1

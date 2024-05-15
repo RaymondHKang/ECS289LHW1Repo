@@ -49,12 +49,12 @@ class CausalSelfAttention(nn.Module):
                                         .view(1, 1, config.block_size, config.block_size))
             
         #self.wind = config.wind
-        self.n_regist = config.n_regist
-        self.register_tokens = nn.Parameter(torch.randn(config.n_regist, config.block_size, config.n_embd))
+        # self.n_regist = config.n_regist
+        # self.register_tokens = nn.Parameter(torch.randn(config.n_regist, config.block_size, config.n_embd))
 
     def forward(self, x):
         #window_size = self.wind
-        n_regist = self.n_regist
+        n_regist = 1
         B, T, C = x.size() # batch size, sequence length, embedding dimensionality (n_embd)
 
         # Concatenate register tokens with input
