@@ -16,6 +16,10 @@ $ torchrun --nproc_per_node=8 --nnodes=2 --node_rank=1 --master_addr=123.456.123
 (If your cluster does not have Infiniband interconnect prepend NCCL_IB_DISABLE=1)
 """
 
+#### IMPORTANT
+# RUN CODE USING FOLLOWING COMMAND:
+# python train.py config/train_shakespeare_char.py {--wind=100}
+
 import os
 import time
 import math

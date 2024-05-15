@@ -6,6 +6,9 @@ https://github.com/openai/gpt-2/blob/master/src/model.py
 2) huggingface/transformers PyTorch implementation:
 https://github.com/huggingface/transformers/blob/main/src/transformers/models/gpt2/modeling_gpt2.py
 """
+#### IMPORTANT
+# RUN CODE USING FOLLOWING COMMAND:
+# python train.py config/train_shakespeare_char.py {--wind=100}
 
 import math
 import inspect
