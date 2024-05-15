@@ -10,9 +10,6 @@ https://github.com/huggingface/transformers/blob/main/src/transformers/models/gp
 import math
 import inspect
 from dataclasses import dataclass
-import numpy as np
-import torch._dynamo
-torch._dynamo.config.suppress_errors = True
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -68,11 +65,10 @@ class CausalSelfAttention(nn.Module):
         mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
          # Apply the mask to zero out the shifted lower triangle
         tril[mask==1] = 0
-
         #causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         if self.flash:
             # efficient attention using Flash Attention CUDA kernels
-            y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=tril, dropout_p=self.dropout if self.training else 0, is_causal=False)
+            y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=tril.bool(), dropout_p=self.dropout if self.training else 0, is_causal=False)
         else:
             #manual implementation of attention
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
