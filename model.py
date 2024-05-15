@@ -13,6 +13,7 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from train import wind
 
 class LayerNorm(nn.Module):
     """ LayerNorm but with an optional bias. PyTorch doesn't support simply bias=False """
@@ -54,8 +55,6 @@ class CausalSelfAttention(nn.Module):
         self.register_tokens = nn.Parameter(torch.randn(64, self.n_regist, config.n_embd))
 
     def forward(self, x):
-        #window_size = self.wind
-        n_regist = self.n_regist
         B, T, C = x.size() # batch size, sequence length, embedding dimensionality (n_embd)
 
         # Concatenate register tokens with input
@@ -63,38 +62,25 @@ class CausalSelfAttention(nn.Module):
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
         q, k, v  = self.c_attn(x).split(self.n_embd, dim=2)
-        k = k.view(B, T + n_regist, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
-        q = q.view(B, T + n_regist, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
-        v = v.view(B, T + n_regist, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        k = k.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
 
-        # tril = torch.tril(torch.ones(B, T, self.n_head, C // self.n_head).transpose(1, 2))
-        # wei = torch.zeroes(((B, T, self.n_head, C // self.n_head).transpose(1, 2)))
-        # wei = wei.masked_fill(tril == 0, float('-inf'))
+        # Creating the mask for the window here
+        tril = torch.tril(torch.ones((T,T),device=x.device))
+        mask = torch.tril(torch.ones_like(tril), diagonal=wind * (-1))
+        # Apply the mask to zero out the shifted lower triangle
+        tril[mask==1] = 0
 
-        # tril = torch.tril(torch.ones((T + n_regist,T + n_regist),device=x.device))
-        # mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
-        #  # Apply the mask to zero out the shifted lower triangle
-        # tril[mask==1] = 0
-
-        # torch.set_printoptions(profile="full")
-        # print(tril)
         #causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         if self.flash:
             # efficient attention using Flash Attention CUDA kernels
-            #y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=tril.bool(), dropout_p=self.dropout if self.training else 0, is_causal=False)
-            y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.dropout if self.training else 0, is_causal=True)
+            # The default one is commented out because it needs to accept an attention mask to do the sliding window and is_causal must be set to false
+            y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=tril.bool(), dropout_p=self.dropout if self.training else 0, is_causal=False)
+            # y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.dropout if self.training else 0, is_causal=True)
         else:
             #manual implementation of attention
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
-            tril = torch.tril(torch.ones((T,T),device=x.device))
-            mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
-         # Apply the mask to zero out the shifted lower triangle
-            tril[mask==1] = 0
-        # torch.set_printoptions(profile="full")
-        # print(self.bias)
-            #att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
-        #print(tril)
-        #att.cuda()
             att = att.masked_fill(tril == 0, float('-inf'))
             att = F.softmax(att, dim=-1)
             att = self.attn_dropout(att)
