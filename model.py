@@ -61,16 +61,19 @@ class CausalSelfAttention(nn.Module):
         # tril = torch.tril(torch.ones(B, T, self.n_head, C // self.n_head).transpose(1, 2))
         # wei = torch.zeroes(((B, T, self.n_head, C // self.n_head).transpose(1, 2)))
         # wei = wei.masked_fill(tril == 0, float('-inf'))
-        tril = torch.tril(torch.ones((T,T),device=x.device))
-        mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
-         # Apply the mask to zero out the shifted lower triangle
-        tril[mask==1] = 0
+
+        # tril = torch.tril(torch.ones((T,T),device=x.device))
+        # mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
+        #  # Apply the mask to zero out the shifted lower triangle
+        # tril[mask==1] = 0
+
         # torch.set_printoptions(profile="full")
         # print(tril)
         #causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         if self.flash:
             # efficient attention using Flash Attention CUDA kernels
-            y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=tril.bool(), dropout_p=self.dropout if self.training else 0, is_causal=False)
+            #y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=tril.bool(), dropout_p=self.dropout if self.training else 0, is_causal=False)
+            y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.dropout if self.training else 0, is_causal=True)
         else:
             #manual implementation of attention
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
@@ -98,15 +101,15 @@ class MLP(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.c_fc    = nn.Linear(config.n_embd, 4 * config.n_embd, bias=config.bias)
-        #self.c_fc2    = nn.Linear(config.n_embd, 4 * config.n_embd, bias=config.bias)
+        self.c_fc2    = nn.Linear(config.n_embd, 4 * config.n_embd, bias=config.bias)
         self.gelu    = nn.GELU()
         self.c_proj  = nn.Linear(4 * config.n_embd, config.n_embd, bias=config.bias)
         self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, x):
-        x = self.c_fc(x)
-        #x_2 = self.c_fc2(x)
-        #x = x_1 * x_2
+        x_1 = self.c_fc(x)
+        x_2 = self.c_fc2(x)
+        x = x_1 * x_2
         x = self.gelu(x)
         x = self.c_proj(x)
         x = self.dropout(x)
