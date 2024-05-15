@@ -57,12 +57,13 @@ class CausalSelfAttention(nn.Module):
         k = k.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
-
+        tril = k
+        mask=k
         # tril = torch.tril(torch.ones(B, T, self.n_head, C // self.n_head).transpose(1, 2))
         # wei = torch.zeroes(((B, T, self.n_head, C // self.n_head).transpose(1, 2)))
         # wei = wei.masked_fill(tril == 0, float('-inf'))
-        tril = torch.tril(torch.ones(T,T))
-        mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
+        torch.tril(torch.ones(T,T), out=tril)
+        torch.tril(torch.ones_like(tril), diagonal=window_size * (-1), out=mask)
          # Apply the mask to zero out the shifted lower triangle
         tril[mask==1] = 0
         #causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
@@ -72,16 +73,16 @@ class CausalSelfAttention(nn.Module):
         else:
             #manual implementation of attention
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
-            tril = torch.tril(torch.ones(T,T))
-            mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
+            torch.tril(torch.ones(T,T),out=tril)
+            torch.tril(torch.ones_like(tril), diagonal=window_size * (-1),out=mask)
          # Apply the mask to zero out the shifted lower triangle
             tril[mask==1] = 0
         # torch.set_printoptions(profile="full")
         # print(self.bias)
-        # att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
+            #att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
         #print(tril)
         #att.cuda()
-        #att = att.masked_fill(tril == 0, float('-inf'))
+            att = att.masked_fill(tril == 0, float('-inf'))
             att = F.softmax(att, dim=-1)
             att = self.attn_dropout(att)
             y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
