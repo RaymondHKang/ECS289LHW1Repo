@@ -72,10 +72,10 @@ class CausalSelfAttention(nn.Module):
             # manual implementation of attention
         att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
         tril = torch.tril(torch.ones(T,T))
-        mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1)).bool()
+        mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
          # Apply the mask to zero out the shifted lower triangle
-        tril[mask] = 0
-        tril.to('cuda:0')
+        tril[mask==1] = 0
+        #tril.to('cpu')
         #att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
         #print(tril)
         att = att.masked_fill(tril == 0, float('-inf'))
