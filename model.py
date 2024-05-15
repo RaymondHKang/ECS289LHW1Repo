@@ -72,16 +72,17 @@ class CausalSelfAttention(nn.Module):
         #     y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.dropout if self.training else 0, is_causal=True)
         # else:
             # manual implementation of attention
-        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
-        tril = torch.tril(torch.ones(T,T))
-        mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
+        # att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
+        # tril = torch.tril(torch.ones(T,T))
+        # mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
          # Apply the mask to zero out the shifted lower triangle
-        tril[mask==1] = 0
-        #att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
+        # tril[mask==1] = 0
+        torch.set_printoptions(profile="full")
+        print(self.bias)
+        att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
         #print(tril)
         #att.cuda()
-        tril.cuda()
-        att = att.masked_fill(tril == 0, float('-inf'))
+        #att = att.masked_fill(tril == 0, float('-inf'))
         att = F.softmax(att, dim=-1)
         att = self.attn_dropout(att)
         y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
