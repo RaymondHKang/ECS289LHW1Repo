@@ -61,30 +61,30 @@ class CausalSelfAttention(nn.Module):
         # tril = torch.tril(torch.ones(B, T, self.n_head, C // self.n_head).transpose(1, 2))
         # wei = torch.zeroes(((B, T, self.n_head, C // self.n_head).transpose(1, 2)))
         # wei = wei.masked_fill(tril == 0, float('-inf'))
-        # torch.tril(torch.ones(T,T), out=tril)
-        # torch.tril(torch.ones_like(tril), diagonal=window_size * (-1), out=mask)
-        #  # Apply the mask to zero out the shifted lower triangle
-        # tril[mask==1] = 0
-        #causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
-        # if self.flash:
-        #     # efficient attention using Flash Attention CUDA kernels
-        #     y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=tril.bool(), dropout_p=self.dropout if self.training else 0, is_causal=False)
-        # else:
-            #manual implementation of attention
-        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
-        tril = torch.tril(torch.ones((T,T),device=x.device))
-        mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
+        torch.tril(torch.ones((T,T),device=x.device), out=tril)
+        torch.tril(torch.ones_like(tril), diagonal=window_size * (-1), out=mask)
          # Apply the mask to zero out the shifted lower triangle
         tril[mask==1] = 0
+        #causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
+        if self.flash:
+            # efficient attention using Flash Attention CUDA kernels
+            y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=tril.bool(), dropout_p=self.dropout if self.training else 0, is_causal=False)
+        else:
+            #manual implementation of attention
+            att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
+            tril = torch.tril(torch.ones((T,T),device=x.device))
+            mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
+         # Apply the mask to zero out the shifted lower triangle
+            tril[mask==1] = 0
         # torch.set_printoptions(profile="full")
         # print(self.bias)
             #att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
         #print(tril)
         #att.cuda()
-        att = att.masked_fill(tril == 0, float('-inf'))
-        att = F.softmax(att, dim=-1)
-        att = self.attn_dropout(att)
-        y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
+            att = att.masked_fill(tril == 0, float('-inf'))
+            att = F.softmax(att, dim=-1)
+            att = self.attn_dropout(att)
+            y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
         y = y.transpose(1, 2).contiguous().view(B, T, C) # re-assemble all head outputs side by side
 
         # output projection
