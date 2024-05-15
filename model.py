@@ -61,10 +61,12 @@ class CausalSelfAttention(nn.Module):
         # tril = torch.tril(torch.ones(B, T, self.n_head, C // self.n_head).transpose(1, 2))
         # wei = torch.zeroes(((B, T, self.n_head, C // self.n_head).transpose(1, 2)))
         # wei = wei.masked_fill(tril == 0, float('-inf'))
-        torch.tril(torch.ones((T,T),device=x.device), out=tril)
-        torch.tril(torch.ones_like(tril), diagonal=window_size * (-1), out=mask)
+        tril = torch.tril(torch.ones((T,T),device=x.device))
+        mask = torch.tril(torch.ones_like(tril), diagonal=window_size * (-1))
          # Apply the mask to zero out the shifted lower triangle
         tril[mask==1] = 0
+        torch.set_printoptions(profile="full")
+        print(tril)
         #causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         if self.flash:
             # efficient attention using Flash Attention CUDA kernels
