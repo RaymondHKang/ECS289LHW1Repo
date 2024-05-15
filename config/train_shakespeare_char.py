@@ -41,5 +41,5 @@ warmup_iters = 100 # not super necessary potentially
 # compile = False # do not torch compile the model
 
 # ADDITIONAL VARIABLES
-#wind = 100
+wind = 100
 #n_regist = 1
