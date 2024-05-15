@@ -85,7 +85,7 @@ for arg in sys.argv[2:]:
     key, val = arg.split('=')
     key = key[2:]
     if key == 'wind':
-        wind = val
+        wind = int(val)
 
 #n_regist = 1
 # -----------------------------------------------------------------------------
