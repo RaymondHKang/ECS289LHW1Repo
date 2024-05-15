@@ -80,6 +80,7 @@ class CausalSelfAttention(nn.Module):
         #att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
         #print(tril)
         #att.cuda()
+        tril.cuda()
         att = att.masked_fill(tril == 0, float('-inf'))
         att = F.softmax(att, dim=-1)
         att = self.attn_dropout(att)
