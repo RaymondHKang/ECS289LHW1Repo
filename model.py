@@ -18,8 +18,9 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 ######### IMPLEMENTATION OF SOFTMAX USING ABS INSTEAD OF EXP
-# def softmax(x, dim):
-#     return torch.abs(x) / torch.sum(abs(x),dim)
+def softmax(x, dim):
+    return torch.abs(x) / torch.sum(abs(x),dim)
+# Not sure if i should do keepdim = True or False but figure out later
 ########
 
 class LayerNorm(nn.Module):
@@ -71,10 +72,11 @@ class CausalSelfAttention(nn.Module):
         q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
 
+        # SLIDING WINDOW IMPLEMENTATION HERE
         # Creating the mask for the window here
         tril = torch.tril(torch.ones((T,T),device=x.device))
         mask = torch.tril(torch.ones_like(tril), diagonal=wind * (-1))
-        # Apply the mask to zero out the shifted lower triangle
+        # Apply the mask to zero out the shifted lower triangle so it will look like the sliding window matrix
         tril[mask==1] = 0
 
         #causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
@@ -87,7 +89,8 @@ class CausalSelfAttention(nn.Module):
             #manual implementation of attention
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
             att = att.masked_fill(tril == 0, float('-inf'))
-            att = F.softmax(att, dim=-1)
+            # att = F.softmax(att, dim=-1)
+            att = softmax(att, dim=-1)
             att = self.attn_dropout(att)
             y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
         y = y.transpose(1, 2).contiguous().view(B, T, C) # re-assemble all head outputs side by side
@@ -96,6 +99,7 @@ class CausalSelfAttention(nn.Module):
         y = self.resid_dropout(self.c_proj(y))
         return y
 
+# MODIFIED MLP CLASS FOR QUESTION 4 SPECIFICATIONS: fc3(ReLU(fc1(x)) .* fc2(x))) instead of fc2(ReLu(fc1(x)))
 class MLP(nn.Module):
 
     def __init__(self, config):
@@ -346,7 +350,8 @@ class GPT(nn.Module):
                 v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
                 logits[logits < v[:, [-1]]] = -float('Inf')
             # apply softmax to convert logits to (normalized) probabilities
-            probs = F.softmax(logits, dim=-1)
+            # probs = F.softmax(logits, dim=-1)
+            probs = softmax(logits, dim=-1)
             # sample from the distribution
             idx_next = torch.multinomial(probs, num_samples=1)
             # append sampled index to the running sequence and continue
